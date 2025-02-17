@@ -16,260 +16,64 @@
 */
 /**
  * @file index.js
- * @authors: Samuel Furter <samuel@ethereum.org>
- * @date 2018
+ * @authors:
+ *   Fabian Vogelsteller <fabian@ethereum.org>
+ *   Gav Wood <gav@parity.io>
+ *   Jeffrey Wilcke <jeffrey.wilcke@ethereum.org>
+ *   Marek Kotewicz <marek@parity.io>
+ *   Marian Oancea <marian@ethereum.org>
+ * @date 2017
  */
-// TODO: Export here a web3 namespace with context handling possibilities and not a object and remove the factory
-// TODO: objects and do them the functional way because of the tree shaking.
-// TODO: Move the folders back to simpler structure e.g.: "packages/core/<methods|subscriptions|providers>"
-import {AbstractWeb3Module} from 'web3-core';
-import {ProviderDetector, ProvidersModuleFactory} from 'web3-providers';
-import * as Utils from 'web3-utils';
-import {Eth} from 'web3-eth';
-import {Shh} from 'web3-shh';
-import {Bzz} from 'web3-bzz';
-import {Network} from 'web3-net';
-import {Personal} from 'web3-eth-personal';
-import {version} from '../package.json';
 
-export default class Web3 extends AbstractWeb3Module {
-    /**
-     * @param {AbstractSocketProvider|HttpProvider|CustomProvider|String} provider
-     * @param {Net} net
-     * @param {Object} options
-     *
-     * @constructor
-     */
-    constructor(provider, net, options = {}) {
-        super(provider, options, null, net);
+"use strict";
 
-        this.eth = new Eth(this.currentProvider, net, options);
-        this.shh = new Shh(this.currentProvider, net, options);
-        this.bzz = new Bzz(this.currentProvider);
-        this.utils = Utils;
-        this.version = version;
-    }
 
-    /**
-     * Sets the defaultGasPrice property on the eth module and also on the shh module
-     *
-     * @property defaultGasPrice
-     *
-     * @param {String} value
-     */
-    set defaultGasPrice(value) {
-        super.defaultGasPrice = value;
-        this.eth.defaultGasPrice = value;
-        this.shh.defaultGasPrice = value;
-    }
+var version = require('../package.json').version;
+var core = require('web3-core');
+var Eth = require('web3-eth');
+var Net = require('web3-net');
+var Personal = require('web3-eth-personal');
+var Shh = require('web3-shh');
+var Bzz = require('web3-bzz');
+var utils = require('web3-utils');
 
-    /**
-     * Gets the defaultGasPrice property
-     *
-     * @property defaultGasPrice
-     *
-     * @returns {String|Number} value
-     */
-    get defaultGasPrice() {
-        return super.defaultGasPrice;
-    }
+var Web3 = function Web3() {
+    var _this = this;
 
-    /**
-     * Sets the defaultGas property on the eth module and also on the shh module
-     *
-     * @property defaultGas
-     *
-     * @param {Number} value
-     */
-    set defaultGas(value) {
-        super.defaultGas = value;
-        this.eth.defaultGas = value;
-        this.shh.defaultGas = value;
-    }
+    // sets _requestmanager etc
+    core.packageInit(this, arguments);
 
-    /**
-     * Gets the defaultGas property
-     *
-     * @property defaultGas
-     *
-     * @returns {String|Number} value
-     */
-    get defaultGas() {
-        return super.defaultGas;
-    }
+    this.version = version;
+    this.utils = utils;
 
-    /**
-     * Sets the transactionBlockTimeout property on all contracts and on all sub-modules
-     *
-     * @property transactionBlockTimeout
-     *
-     * @param {Number} value
-     */
-    set transactionBlockTimeout(value) {
-        super.transactionBlockTimeout = value;
-        this.eth.transactionBlockTimeout = value;
-        this.shh.transactionBlockTimeout = value;
-    }
+    this.eth = new Eth(this);
+    this.shh = new Shh(this);
+    this.bzz = new Bzz(this);
 
-    /**
-     * Gets the transactionBlockTimeout property
-     *
-     * @property transactionBlockTimeout
-     *
-     * @returns {Number} value
-     */
-    get transactionBlockTimeout() {
-        return super.transactionBlockTimeout;
-    }
+    // overwrite package setProvider
+    var setProvider = this.setProvider;
+    this.setProvider = function (provider, net) {
+        setProvider.apply(_this, arguments);
 
-    /**
-     * Sets the transactionConfirmationBlocks property on all contracts and on all sub-modules
-     *
-     * @property transactionConfirmationBlocks
-     *
-     * @param {Number} value
-     */
-    set transactionConfirmationBlocks(value) {
-        super.transactionConfirmationBlocks = value;
-        this.eth.transactionConfirmationBlocks = value;
-        this.shh.transactionConfirmationBlocks = value;
-    }
+        _this.eth.setRequestManager(_this._requestManager);
+        _this.shh.setRequestManager(_this._requestManager);
+        _this.bzz.setProvider(provider);
 
-    /**
-     * Gets the transactionConfirmationBlocks property
-     *
-     * @property transactionConfirmationBlocks
-     *
-     * @returns {Number} value
-     */
-    get transactionConfirmationBlocks() {
-        return super.transactionConfirmationBlocks;
-    }
+        return true;
+    };
+};
 
-    /**
-     * Sets the transactionConfirmationBlocks property on all contracts and on all sub-modules
-     *
-     * @property transactionConfirmationBlocks
-     *
-     * @param {Number} value
-     */
-    set transactionPollingTimeout(value) {
-        super.transactionPollingTimeout = value;
-        this.eth.transactionPollingTimeout = value;
-        this.shh.transactionPollingTimeout = value;
-    }
+Web3.version = version;
+Web3.utils = utils;
+Web3.modules = {
+    Eth: Eth,
+    Net: Net,
+    Personal: Personal,
+    Shh: Shh,
+    Bzz: Bzz
+};
 
-    /**
-     * Gets the transactionPollingTimeout property
-     *
-     * @property transactionPollingTimeout
-     *
-     * @returns {Number} value
-     */
-    get transactionPollingTimeout() {
-        return super.transactionPollingTimeout;
-    }
+core.addProviders(Web3);
 
-    /**
-     * Sets the defaultAccount property on the eth module and also on the shh module
-     *
-     * @property defaultAccount
-     *
-     * @param {String} value
-     */
-    set defaultAccount(value) {
-        super.defaultAccount = value;
-        this.eth.defaultAccount = value;
-        this.shh.defaultAccount = value;
-    }
+module.exports = Web3;
 
-    /**
-     * Gets the defaultAccount property
-     *
-     * @property defaultAccount
-     *
-     * @returns {String} value
-     */
-    get defaultAccount() {
-        return super.defaultAccount;
-    }
-
-    /**
-     * Sets the defaultBlock property on the eth module and also on the shh module
-     *
-     * @property defaultBlock
-     *
-     * @param {Number|String} value
-     */
-    set defaultBlock(value) {
-        super.defaultBlock = value;
-        this.eth.defaultBlock = value;
-        this.shh.defaultBlock = value;
-    }
-
-    /**
-     * Gets the defaultBlock property
-     *
-     * @property defaultBlock
-     *
-     * @returns {String|Number} value
-     */
-    get defaultBlock() {
-        return super.defaultBlock;
-    }
-
-    /**
-     * Sets the provider for all packages
-     *
-     * @method setProvider
-     *
-     * @param {Object|String} provider
-     * @param {Net} net
-     *
-     * @returns {Boolean}
-     */
-    setProvider(provider, net) {
-        return (
-            super.setProvider(provider, net) &&
-            this.eth.setProvider(provider, net) &&
-            this.shh.setProvider(provider, net) &&
-            this.bzz.setProvider(provider)
-        );
-    }
-
-    /**
-     * Returns the detected provider
-     *
-     * @returns {Object}
-     */
-    static get givenProvider() {
-        return ProviderDetector.detect();
-    }
-
-    /**
-     * Returns an object with all public web3 modules
-     *
-     * @returns {Object}
-     */
-    static get modules() {
-        const providerResolver = new ProvidersModuleFactory().createProviderResolver();
-
-        return {
-            Eth: (provider, options, net) => {
-                return new Eth(providerResolver.resolve(provider, net), options);
-            },
-            Net: (provider, options, net) => {
-                return new Network(providerResolver.resolve(provider, net), options);
-            },
-            Personal: (provider, options, net) => {
-                return new Personal(providerResolver.resolve(provider, net), options);
-            },
-            Shh: (provider, options, net) => {
-                return new Shh(providerResolver.resolve(provider, net), options);
-            },
-            Bzz: (provider) => {
-                return new Bzz(provider);
-            }
-        };
-    }
-}
